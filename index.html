@@ -1,5 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>GPA Planner</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>gpa planner</title>
 <style>
+*,*::placeholder{text-transform:lowercase!important}
 :root{--bg:#F5F4ED;--bg2:#EFE6DA;--card:#FFFFFF99;--solid:#FAF9F5;--ink:#141413;--mut:#8A8778;--line:#E6DFD0;--acc:#C96442;--accs:#C9644218;--acc2:#7C8DA6;--ok:#4C7A4F;--bad:#B3402F;--warn:#B07A1E;--sh:0 1px 2px #0000000a,0 10px 30px #7a5a3a14;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1F1E1D;--bg2:#2B2624;--card:#30302E99;--solid:#30302E;--ink:#FAF9F5;--mut:#9A978C;--line:#44433F;--acc:#D97757;--accs:#D9775722;--acc2:#8FA0BA;--ok:#8DB88F;--bad:#E07B67;--warn:#D9A441;--sh:0 1px 2px #0005,0 10px 30px #0004;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#1F1E1D;--bg2:#2B2624;--card:#30302E99;--solid:#30302E;--ink:#FAF9F5;--mut:#9A978C;--line:#44433F;--acc:#D97757;--accs:#D9775722;--acc2:#8FA0BA;--ok:#8DB88F;--bad:#E07B67;--warn:#D9A441;--sh:0 1px 2px #0005,0 10px 30px #0004;color-scheme:dark}
@@ -10,12 +11,12 @@ h1,h2,b.n{font-family:Georgia,"Times New Roman",serif;font-weight:500}h1{font-si
 section{background:var(--card);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:22px;padding:22px;margin-top:18px;box-shadow:var(--sh)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .card{border-radius:16px;padding:14px 16px;background:var(--solid);border:1px solid var(--line);position:relative;overflow:hidden}.card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--acc);opacity:.85}
-.card span{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.card b.n{display:block;font-size:30px;line-height:1.2;margin-top:2px}.card i{font-style:normal;color:var(--mut);font-size:12px}
+.card span{color:var(--mut);font-size:12px;text-transform:lowercase;letter-spacing:.06em}.card b.n{display:block;font-size:30px;line-height:1.2;margin-top:2px}.card i{font-style:normal;color:var(--mut);font-size:12px}
 .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.pill{cursor:pointer;padding:10px 22px;border-radius:999px;border:1px solid var(--line);background:var(--solid);font:500 18px Georgia,serif;transition:.15s}.pill:hover{border-color:var(--acc)}.pill.on{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 6px 18px var(--accs)}
 button,input{font:inherit;color:var(--ink)}button{background:var(--solid);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;transition:.15s}button:hover{border-color:var(--acc);color:var(--acc)}
 input[type=text]{background:transparent;border:1px solid transparent;border-bottom-color:var(--line);border-radius:8px;padding:6px 8px;width:64px;text-align:center;transition:.15s}input.nm{width:200px;text-align:left}input[type=text]:hover{background:var(--accs)}input:focus{outline:none;background:var(--solid);border-color:var(--acc)}
 input[type=checkbox]{accent-color:var(--acc);width:17px;height:17px}input[type=range]{width:100%;min-width:130px;accent-color:var(--acc)}
-.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:600px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:0}th{font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:600px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:0}th{font-size:11px;color:var(--mut);font-weight:600;text-transform:lowercase;letter-spacing:.06em}
 .ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut);font-size:13px}.chip{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;background:var(--accs)}
 .msg{padding:9px 14px;margin-top:10px;background:var(--accs);border-radius:12px;font-size:14px}
 .bar{height:7px;background:var(--line);border-radius:9px;position:relative;min-width:90px}.bar u{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:var(--acc2)}.bar s{position:absolute;top:-3px;bottom:-3px;width:3px;border-radius:2px;background:var(--acc)}
@@ -33,15 +34,15 @@ footer{text-align:center;color:var(--mut);padding:26px 0 30px;font:italic 16px G
 body.intro{overflow:hidden}body.intro .w{display:none}.w{animation:rise .8s both}@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .ic{width:100px!important}.ic::placeholder{color:var(--warn);opacity:1}
 </style></head><body><div class="w">
-<header><div><h1>GPA Planner</h1><div class="sub" id="sub">Know exactly what you need in every TEE</div></div><button data-act="theme" class="noprint">◐ Theme</button></header>
+<header><div><h1>gpa planner</h1><div class="sub" id="sub">Know exactly what you need in every TEE</div></div><button data-act="theme" class="noprint">◐ Theme</button></header>
 <section><div class="grid" id="cards"></div></section>
 <section><h2>Target GPA</h2><div class="pills" id="tg"></div><div id="msgs"></div></section>
 <section><h2>Subjects</h2><div class="sc"><table id="tbl"></table></div><div class="row noprint" style="margin-top:10px"><button data-act="add">+ Add subject</button></div></section>
 <section><h2>What you need</h2><div class="sc"><table id="req"></table></div></section>
 <section><h2>What-If Planner</h2><div class="sc"><table id="wi"></table></div><div id="wis"></div></section>
 <div class="row tools noprint"><button data-act="csv">Export CSV</button><button data-act="print">Print / PDF</button><button data-act="reset">Reset</button><button data-act="clear">Clear all</button></div>
-<footer>Sri</footer></div>
-<div id="intro"><div class="ib"><div class="hi">Hi, this is Sri.</div><div class="q">What’s your name?</div><input id="nm" type="text" maxlength="30" placeholder="Your name" autocomplete="off"><button id="go" class="p">Continue →</button></div><footer class="f2">Sri</footer></div>
+<footer>sri</footer></div>
+<div id="intro"><div class="ib"><div class="hi">hi, this is sri.</div><div class="q">what’s your name?</div><input id="nm" type="text" maxlength="30" placeholder="your name" autocomplete="off"><button id="go" class="p">continue →</button></div><footer class="f2">sri</footer></div>
 <div id="modal" hidden><div class="mb"><div id="mc"></div><div class="row" id="mb" style="margin-top:12px"></div></div></div>
 <script>
 const KEY="gpa-planner-v2";
