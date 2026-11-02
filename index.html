@@ -37,7 +37,6 @@ body.intro{overflow:hidden}body.intro .w{display:none}.w{animation:rise .8s both
 <header><div><h1>gpa planner</h1><div class="sub" id="sub">Know exactly what you need in every TEE</div></div><button data-act="theme" class="noprint">◐ Theme</button></header>
 <section><div class="grid" id="cards"></div></section>
 <section><h2>Target GPA</h2><div class="pills" id="tg"></div><div id="msgs"></div></section>
-<section><h2>Subjects</h2><div class="sc"><table id="tbl"></table></div><div class="row noprint" style="margin-top:10px"><button data-act="add">+ Add subject</button></div></section>
 <section><h2>What you need</h2><div class="sc"><table id="req"></table></div></section>
 <section><h2>What-If Planner</h2><div class="sc"><table id="wi"></table></div><div id="wis"></div></section>
 <div class="row tools noprint"><button data-act="csv">Export CSV</button><button data-act="print">Print / PDF</button><button data-act="reset">Reset</button><button data-act="clear">Clear all</button></div>
@@ -62,10 +61,10 @@ const E={
   const n=items.length,sumC=items.reduce((a,i)=>a+i.cr,0);if(!n||sumC<=0)return null;
   const need=target*sumC,L=items.map(i=>E.levels(sc,i.ica)),suf=Array(n+1).fill(0);
   for(let i=n-1;i>=0;i--)suf[i]=suf[i+1]+items[i].cr*L[i][0].gp;
-  let best=null;const pick=[],res={need,sumC,maxGPA:suf[0]/sumC,achievable:suf[0]>=need-1e-9,plan:null,maxPlan:L.map((l,k)=>({id:items[k].id,gp:l[0].gp,tee:l[0].tee}))};
+  let best=null;const pick=[],res={need,sumC,maxGPA:suf[0]/sumC,achievable:suf[0]>=need-1e-9,plan:null,maxPlan:L.map((l,k)=>({id:items[k].id,gp:l[0].gp,tee:l[0].tee,min:l[0].min}))};
   const rec=(i,pts,tee)=>{
    if(pts+suf[i]<need-1e-9)return;if(best&&tee>best.total+1e-9)return;
-   if(i===n){const ch=pick.map((l,k)=>({id:items[k].id,gp:l.gp,tee:l.tee})),pk=Math.max(...ch.map(c=>c.tee));if(!best||tee<best.total-1e-9||pk<best.peak)best={choice:ch,total:tee,peak:pk,gpa:pts/sumC};return}
+   if(i===n){const ch=pick.map((l,k)=>({id:items[k].id,gp:l.gp,tee:l.tee,min:l.min})),pk=Math.max(...ch.map(c=>c.tee)),sq=ch.reduce((a,c)=>a+c.tee*c.tee,0);if(!best||tee<best.total-1e-9||(Math.abs(tee-best.total)<=1e-9&&(pk<best.peak||(pk===best.peak&&sq<best.sq-1e-9))))best={choice:ch,total:tee,peak:pk,sq,gpa:pts/sumC};return}
    for(const l of L[i]){pick[i]=l;rec(i+1,pts+items[i].cr*l.gp,tee+l.tee)}};
   rec(0,0,0);res.plan=best;return res}
 };
@@ -82,8 +81,7 @@ function comp(excl){
   if(!b)return{ok:false};b.c.gp=b.l.gp;b.c.tee=Math.max(b.c.tee,b.l.tee);pts+=b.gain}
  return{ok:true,steps:[...cur.values()].filter(c=>c.tee>c.t0)}}
 function build(){
- $("tbl").innerHTML="<tr><th>Use</th><th>Subject</th><th>Credits</th><th>MTT-1</th><th>MTT-2</th><th>ICA /50</th><th>Expected TEE</th><th>Actual TEE</th><th></th></tr>"+S.subjects.map(s=>`<tr><td><input type="checkbox" data-i="${s.id}" data-k="inc" ${s.inc?"checked":""}></td><td><input class="nm" type="text" data-i="${s.id}" data-k="name" value="${s.name.replace(/"/g,"&quot;")}"></td><td>${inp(s,"cr",30)}</td><td>${inp(s,"m1",100)}</td><td>${inp(s,"m2",100)}</td><td>${inp(s,"ica",50)}</td><td>${inp(s,"exp",100)}</td><td>${inp(s,"act",100)}</td><td><button data-act="del" data-i="${s.id}" class="noprint">×</button></td></tr>`).join("");
- $("wi").innerHTML="<tr><th>Subject</th><th style='width:38%'>Expected TEE</th><th></th><th>Aggregate</th><th>Grade pt</th><th>Change</th></tr>"+S.subjects.filter(s=>s.inc).map(s=>`<tr><td>${s.name}</td><td><input type="range" min="0" max="100" step="0.5" data-i="${s.id}" data-k="exp" data-max="100" value="${s.exp??0}"></td><td>${inp(s,"exp",100)}</td><td id="wa${s.id}"></td><td id="wg${s.id}"></td><td id="wd${s.id}"></td></tr>`).join("");
+ $("wi").innerHTML="<tr><th>Use</th><th>Subject</th><th>Credits</th><th>ICA /50</th><th colspan='2' style='width:30%'>Expected TEE /100</th><th>TEE ÷ 2 /50</th><th>Final /100</th><th>Grade pt</th><th>Change</th></tr>"+S.subjects.map(s=>`<tr><td><input type="checkbox" data-i="${s.id}" data-k="inc" ${s.inc?"checked":""}></td><td>${s.name}</td><td>${inp(s,"cr",30)}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="Enter ICA" data-i="${s.id}" data-k="ica" data-max="50" value="${s.ica??""}"></td><td><input type="range" min="0" max="100" step="0.5" data-i="${s.id}" data-k="exp" data-max="100" value="${s.exp??0}"></td><td>${inp(s,"exp",100)}</td><td id="wa${s.id}"></td><td id="wf${s.id}"></td><td id="wg${s.id}"></td><td id="wd${s.id}"></td></tr>`).join("");
  update()}
 function update(){
  save();const I=inc(),sumC=I.reduce((a,s)=>a+s.cr,0),miss=I.filter(s=>s.ica==null),msgs=[];
@@ -99,12 +97,12 @@ function update(){
  if(S.target<0||S.target>10)msgs.push("Target must be between 0 and 10.");
  if(!opt.achievable)msgs.push(`GPA ${f(S.target,2)} is not achievable. Even with 100 in every TEE, the most you can reach is ${f(opt.maxGPA,2)}.`);
  $("msgs").innerHTML=msgs.map(m=>`<div class="msg">${m}</div>`).join("");
- let h="<tr><th>Subject</th><th>ICA</th><th>Grade pt</th><th>Required TEE</th><th style='width:24%'>Expected vs required</th><th>Status</th></tr>";
- I.forEach(s=>{const c=pm.get(s.id),e=s.exp??0,mi=s.ica==null;h+=`<tr><td>${s.name}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="Enter ICA" data-i="${s.id}" data-k="ica" data-max="50" value="${s.ica??""}"></td><td>${c.gp}</td><td><b>${mi?"~":""}${f(c.tee)}</b></td><td><div class="bar"><u style="width:${e}%"></u><s style="left:${Math.min(c.tee,100)}%"></s></div></td><td class="${mi?"warn":e>=c.tee?"ok":"bad"}">${mi?"Conditional":e>=c.tee?"On track":"Needs +"+f(c.tee-e)}</td></tr>`});
+ let h="<tr><th>Subject</th><th>ICA</th><th>Grade pt</th><th>Required TEE</th><th>Final needed /100</th><th style='width:24%'>Expected vs required</th><th>Status</th></tr>";
+ I.forEach(s=>{const c=pm.get(s.id),e=s.exp??0,mi=s.ica==null;h+=`<tr><td>${s.name}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="Enter ICA" data-i="${s.id}" data-k="ica" data-max="50" value="${s.ica??""}"></td><td>${c.gp}</td><td><b>${mi?"~":""}${f(c.tee)}</b></td><td>${f(c.min)}</td><td><div class="bar"><u style="width:${e}%"></u><s style="left:${Math.min(c.tee,100)}%"></s></div></td><td class="${mi?"warn":e>=c.tee?"ok":"bad"}">${mi?"Conditional":e>=c.tee?"On track":"Needs +"+f(c.tee-e)}</td></tr>`});
  $("req").innerHTML=h;
  if(!S.base)S.base=Object.fromEntries(S.subjects.map(s=>[s.id,s.exp]));
  const gb=E.gpa(I.map(s=>({cr:s.cr,gp:E.gp(S.scale,E.agg(eff(s),S.base[s.id]??s.exp??0))})));
- S.subjects.forEach(s=>{const a=$("wa"+s.id);if(!a)return;const ag=E.agg(eff(s),s.exp??0),g=E.gp(S.scale,ag),bg=E.gp(S.scale,E.agg(eff(s),S.base[s.id]??s.exp??0));a.textContent=(s.ica==null?"~":"")+f(ag,1);$("wg"+s.id).textContent=g;$("wd"+s.id).innerHTML=g===bg?"<span class=mut>-</span>":`<span class="${g>bg?"ok":"bad"}">${g>bg?"+":""}${g-bg} pts</span>`});
+ S.subjects.forEach(s=>{const a=$("wa"+s.id);if(!a)return;const t=s.exp??0,ag=E.agg(eff(s),t),g=E.gp(S.scale,ag),bg=E.gp(S.scale,E.agg(eff(s),S.base[s.id]??s.exp??0)),m=s.ica==null?"~":"";a.textContent=f(t/2,1);$("wf"+s.id).textContent=m+f(ag,1);$("wg"+s.id).textContent=g;$("wd"+s.id).innerHTML=g===bg?"<span class=mut>-</span>":`<span class="${g>bg?"ok":"bad"}">${g>bg?"+":""}${g-bg} pts</span>`});
  const need=S.target*sumC-proj*sumC;let w=`<div class="grid" style="margin-top:14px">`+cd("Projected GPA",f(proj,2),known?"":"conditional")+cd("Change",sg(proj-gb),"vs baseline")+cd("Vs target",sg(proj-S.target),"")+cd("Points short",need>1e-9?f(need,1):"0","credit-weighted")+`</div>`;
  if(need<=1e-9)w+=`<div class="msg ok">Your expected marks reach the target.</div>`;
  else{let r=comp(S.last);if(!r.ok&&S.last!=null)r=comp(null);
