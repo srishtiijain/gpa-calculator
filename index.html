@@ -45,8 +45,9 @@ body.intro{overflow:hidden}body.intro .w{display:none}.w{animation:rise .8s both
 <div id="modal" hidden><div class="mb"><div id="mc"></div><div class="row" id="mb" style="margin-top:12px"></div></div></div>
 <script>
 const KEY="gpa-planner-v2";
-const DEF=()=>({subjects:[["Software Engineering",7,null,null],["Artificial Intelligence (AI)",8,8,null],["Image and Video Processing",9,8,43],["Operating Systems (OS)",9,6,44],["LTLS",8,8,null],["AR/VR",8,3.5,37.5],["MAD",5,null,null]].map((a,i)=>({id:i+1,name:a[0],cr:3,m1:a[1],m2:a[2],ica:a[3],exp:75,act:null,inc:true})),scale:[[90,10],[80,9],[70,8],[60,7],[50,6],[40,5]].map(a=>({min:a[0],gp:a[1]})),target:8.5,assumed:40,base:null,nid:8,last:null,theme:null});
+const DEF=()=>({subjects:[["Software Engineering",7,null,null],["Artificial Intelligence (AI)",8,8,null],["Image and Video Processing",9,8,43],["Operating Systems (OS)",9,6,44],["LTLS",8,8,null],["AR/VR",8,3.5,37.5],["MAD",5,null,null]].map((a,i)=>({id:i+1,name:a[0],cr:3,m1:a[1],m2:a[2],ica:a[3],exp:75,act:null,inc:true,noTee:a[0]==="MAD"})),scale:[[90,10],[80,9],[70,8],[60,7],[50,6],[40,5]].map(a=>({min:a[0],gp:a[1]})),target:8.5,assumed:40,base:null,nid:8,last:null,theme:null});
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S||!S.subjects)S=DEF();
+S.subjects.forEach(s=>{if(/^mad$/i.test(s.name.trim()))s.noTee=true});
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
 const f=(x,d=1)=>x==null||isNaN(x)?"-":String(+x.toFixed(d));
@@ -56,10 +57,10 @@ const E={
  agg:(ica,tee)=>ica+tee/2,
  gp(sc,a){for(const r of E.sorted(sc))if(a>=r.min-1e-9)return r.gp;return 0},
  gpa(items){const c=items.reduce((a,i)=>a+i.cr,0);return c>0?items.reduce((a,i)=>a+i.cr*i.gp,0)/c:null},
- levels(sc,ica){const m=new Map();for(const r of E.sorted(sc).concat([{min:0,gp:0}])){const tee=Math.max(0,Math.ceil(2*(r.min-ica)*2-1e-9)/2);if(tee<=100&&(!m.has(r.gp)||m.get(r.gp).tee>tee))m.set(r.gp,{gp:r.gp,min:r.min,tee})}return[...m.values()].sort((a,b)=>b.gp-a.gp)},
+ levels(sc,ica,fixed){if(fixed){const g=E.gp(sc,ica),r=E.sorted(sc).find(r=>r.gp===g);return[{gp:g,min:r?r.min:0,tee:0}]}const m=new Map();for(const r of E.sorted(sc).concat([{min:0,gp:0}])){const tee=Math.max(0,Math.ceil(2*(r.min-ica)*2-1e-9)/2);if(tee<=100&&(!m.has(r.gp)||m.get(r.gp).tee>tee))m.set(r.gp,{gp:r.gp,min:r.min,tee})}return[...m.values()].sort((a,b)=>b.gp-a.gp)},
  optimize(sc,items,target){
   const n=items.length,sumC=items.reduce((a,i)=>a+i.cr,0);if(!n||sumC<=0)return null;
-  const need=target*sumC,L=items.map(i=>E.levels(sc,i.ica)),suf=Array(n+1).fill(0);
+  const need=target*sumC,L=items.map(i=>E.levels(sc,i.ica,i.fixed)),suf=Array(n+1).fill(0);
   for(let i=n-1;i>=0;i--)suf[i]=suf[i+1]+items[i].cr*L[i][0].gp;
   let best=null;const pick=[],res={need,sumC,maxGPA:suf[0]/sumC,achievable:suf[0]>=need-1e-9,plan:null,maxPlan:L.map((l,k)=>({id:items[k].id,gp:l[0].gp,tee:l[0].tee,min:l[0].min}))};
   const rec=(i,pts,tee)=>{
@@ -69,19 +70,20 @@ const E={
   rec(0,0,0);res.plan=best;return res}
 };
 const inc=()=>S.subjects.filter(s=>s.inc&&s.cr>0);
-const eff=s=>s.ica??S.assumed;
-const gpExp=s=>E.gp(S.scale,E.agg(eff(s),s.exp??0));
-const items=()=>inc().map(s=>({id:s.id,cr:s.cr,ica:eff(s)}));
+const eff=s=>s.ica??(s.noTee?S.assumed*2:S.assumed);
+const ag=(s,ica,t)=>s.noTee?ica:ica+t/2;
+const gpExp=s=>E.gp(S.scale,ag(s,eff(s),s.exp??0));
+const items=()=>inc().map(s=>({id:s.id,cr:s.cr,ica:eff(s),fixed:!!s.noTee}));
 const inp=(s,k,max)=>`<input type="text" inputmode="decimal" placeholder="${k==="ica"?"?":"-"}" data-i="${s.id}" data-k="${k}" data-max="${max}" value="${s[k]??""}">`;
 function comp(excl){
  const I=inc(),sumC=I.reduce((a,s)=>a+s.cr,0),cur=new Map(I.map(s=>[s.id,{s,gp:gpExp(s),tee:s.exp??0,t0:s.exp??0}]));
  let pts=[...cur.values()].reduce((a,c)=>a+c.s.cr*c.gp,0);const goal=S.target*sumC;
  while(pts<goal-1e-9){let b=null;
-  for(const c of cur.values()){if(c.s.id===excl)continue;for(const l of E.levels(S.scale,eff(c.s)).filter(l=>l.gp>c.gp)){const cost=Math.max(0,l.tee-c.tee),gain=c.s.cr*(l.gp-c.gp),r=cost/gain;if(!b||r<b.r)b={c,l,r,gain}}}
+  for(const c of cur.values()){if(c.s.id===excl)continue;for(const l of E.levels(S.scale,eff(c.s),c.s.noTee).filter(l=>l.gp>c.gp)){const cost=Math.max(0,l.tee-c.tee),gain=c.s.cr*(l.gp-c.gp),r=cost/gain;if(!b||r<b.r)b={c,l,r,gain}}}
   if(!b)return{ok:false};b.c.gp=b.l.gp;b.c.tee=Math.max(b.c.tee,b.l.tee);pts+=b.gain}
  return{ok:true,steps:[...cur.values()].filter(c=>c.tee>c.t0)}}
 function build(){
- $("wi").innerHTML="<tr><th>Use</th><th>Subject</th><th>Credits</th><th>ICA /50</th><th colspan='2' style='width:30%'>Expected TEE /100</th><th>TEE ÷ 2 /50</th><th>Final /100</th><th>Grade pt</th><th>Change</th></tr>"+S.subjects.map(s=>`<tr><td><input type="checkbox" data-i="${s.id}" data-k="inc" ${s.inc?"checked":""}></td><td>${s.name}</td><td>${inp(s,"cr",30)}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="Enter ICA" data-i="${s.id}" data-k="ica" data-max="50" value="${s.ica??""}"></td><td><input type="range" min="0" max="100" step="0.5" data-i="${s.id}" data-k="exp" data-max="100" value="${s.exp??0}"></td><td>${inp(s,"exp",100)}</td><td id="wa${s.id}"></td><td id="wf${s.id}"></td><td id="wg${s.id}"></td><td id="wd${s.id}"></td></tr>`).join("");
+ $("wi").innerHTML="<tr><th>Use</th><th>Subject</th><th>Credits</th><th>ICA /50 (mad: /100)</th><th colspan='2' style='width:30%'>Expected TEE /100</th><th>TEE ÷ 2 /50</th><th>Final /100</th><th>Grade pt</th><th>Change</th></tr>"+S.subjects.map(s=>`<tr><td><input type="checkbox" data-i="${s.id}" data-k="inc" ${s.inc?"checked":""}></td><td>${s.name}${s.noTee?` <span class="chip">no tee, ica /100 is final</span>`:""}</td><td>${inp(s,"cr",30)}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="${s.noTee?"ica /100":"Enter ICA"}" data-i="${s.id}" data-k="ica" data-max="${s.noTee?100:50}" value="${s.ica??""}"></td>${s.noTee?`<td><input type="range" min="0" max="100" step="0.5" data-i="${s.id}" data-k="ica" data-max="100" value="${s.ica??0}"></td><td class="mut">final mark</td>`:`<td><input type="range" min="0" max="100" step="0.5" data-i="${s.id}" data-k="exp" data-max="100" value="${s.exp??0}"></td><td>${inp(s,"exp",100)}</td>`}<td id="wa${s.id}"></td><td id="wf${s.id}"></td><td id="wg${s.id}"></td><td id="wd${s.id}"></td></tr>`).join("");
  update()}
 function update(){
  save();const I=inc(),sumC=I.reduce((a,s)=>a+s.cr,0),miss=I.filter(s=>s.ica==null),msgs=[];
@@ -90,7 +92,7 @@ function update(){
  if(!I.length||sumC<=0){$("cards").innerHTML="<div class='msg'>Add at least one included subject with credits.</div>";$("req").innerHTML=$("wis").innerHTML="";$("msgs").innerHTML=msgs.map(m=>`<div class="msg">${m}</div>`).join("");return}
  const opt=E.optimize(S.scale,items(),S.target),pm=new Map((opt.plan?opt.plan.choice:opt.maxPlan).map(c=>[c.id,c]));
  const proj=E.gpa(I.map(s=>({cr:s.cr,gp:gpExp(s)}))),known=!miss.length;
- const maxB=I.reduce((a,s)=>a+s.cr*E.levels(S.scale,s.ica??50)[0].gp,0)/sumC;
+ const maxB=I.reduce((a,s)=>a+s.cr*E.levels(S.scale,s.ica??(s.noTee?100:50),s.noTee)[0].gp,0)/sumC;
  const meet=I.filter(s=>s.ica!=null&&pm.get(s.id).tee<=(s.exp??0)).length;
  const cd=(t,v,sub)=>`<div class="card"><span>${t}</span><b class="n">${v}</b><i>${sub||"&nbsp;"}</i></div>`;
  $("cards").innerHTML=cd("Target",f(S.target,2))+cd("Projected",known?f(proj,2):"Enter ICA",known?"from expected TEE":`about ${f(proj,2)} if missing ICA = ${S.assumed}`)+cd("Vs target",known?sg(proj-S.target):"-",known?(proj>=S.target-1e-9?"target met":"below target"):"")+cd("On track",`${meet} / ${I.length}`,"subjects")+cd("Missing ICA",miss.length,miss.length?"results conditional":"all entered")+cd("Max GPA",(miss.length?"≤ ":"")+f(maxB,2),"best possible");
@@ -98,11 +100,11 @@ function update(){
  if(!opt.achievable)msgs.push(`GPA ${f(S.target,2)} is not achievable. Even with 100 in every TEE, the most you can reach is ${f(opt.maxGPA,2)}.`);
  $("msgs").innerHTML=msgs.map(m=>`<div class="msg">${m}</div>`).join("");
  let h="<tr><th>Subject</th><th>ICA</th><th>Grade pt</th><th>Required TEE</th><th>Final needed /100</th><th style='width:24%'>Expected vs required</th><th>Status</th></tr>";
- I.forEach(s=>{const c=pm.get(s.id),e=s.exp??0,mi=s.ica==null;h+=`<tr><td>${s.name}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="Enter ICA" data-i="${s.id}" data-k="ica" data-max="50" value="${s.ica??""}"></td><td>${c.gp}</td><td><b>${mi?"~":""}${f(c.tee)}</b></td><td>${f(c.min)}</td><td><div class="bar"><u style="width:${e}%"></u><s style="left:${Math.min(c.tee,100)}%"></s></div></td><td class="${mi?"warn":e>=c.tee?"ok":"bad"}">${mi?"Conditional":e>=c.tee?"On track":"Needs +"+f(c.tee-e)}</td></tr>`});
+ I.forEach(s=>{const c=pm.get(s.id),e=s.exp??0,mi=s.ica==null;h+=`<tr><td>${s.name}${s.noTee?` <span class="chip">no tee, ica /100 is final</span>`:""}</td><td><input type="text" inputmode="decimal" class="ic" placeholder="${s.noTee?"ica /100":"Enter ICA"}" data-i="${s.id}" data-k="ica" data-max="${s.noTee?100:50}" value="${s.ica??""}"></td><td>${c.gp}</td><td><b>${s.noTee?"no tee":(mi?"~":"")+f(c.tee)}</b></td><td>${f(c.min)}</td><td>${s.noTee?"":`<div class="bar"><u style="width:${e}%"></u><s style="left:${Math.min(c.tee,100)}%"></s></div>`}</td><td class="${mi?"warn":e>=c.tee?"ok":"bad"}">${mi?"Conditional":s.noTee?"Fixed by ica":e>=c.tee?"On track":"Needs +"+f(c.tee-e)}</td></tr>`});
  $("req").innerHTML=h;
  if(!S.base)S.base=Object.fromEntries(S.subjects.map(s=>[s.id,s.exp]));
- const gb=E.gpa(I.map(s=>({cr:s.cr,gp:E.gp(S.scale,E.agg(eff(s),S.base[s.id]??s.exp??0))})));
- S.subjects.forEach(s=>{const a=$("wa"+s.id);if(!a)return;const t=s.exp??0,ag=E.agg(eff(s),t),g=E.gp(S.scale,ag),bg=E.gp(S.scale,E.agg(eff(s),S.base[s.id]??s.exp??0)),m=s.ica==null?"~":"";a.textContent=f(t/2,1);$("wf"+s.id).textContent=m+f(ag,1);$("wg"+s.id).textContent=g;$("wd"+s.id).innerHTML=g===bg?"<span class=mut>-</span>":`<span class="${g>bg?"ok":"bad"}">${g>bg?"+":""}${g-bg} pts</span>`});
+ const gb=E.gpa(I.map(s=>({cr:s.cr,gp:E.gp(S.scale,ag(s,eff(s),S.base[s.id]??s.exp??0))})));
+ S.subjects.forEach(s=>{const a=$("wa"+s.id);if(!a)return;const t=s.exp??0,ag2=ag(s,eff(s),t),g=E.gp(S.scale,ag2),bg=E.gp(S.scale,ag(s,eff(s),S.base[s.id]??s.exp??0)),m=s.ica==null?"~":"";a.textContent=s.noTee?"-":f(t/2,1);$("wf"+s.id).textContent=m+f(ag2,1);$("wg"+s.id).textContent=g;$("wd"+s.id).innerHTML=g===bg?"<span class=mut>-</span>":`<span class="${g>bg?"ok":"bad"}">${g>bg?"+":""}${g-bg} pts</span>`});
  const need=S.target*sumC-proj*sumC;let w=`<div class="grid" style="margin-top:14px">`+cd("Projected GPA",f(proj,2),known?"":"conditional")+cd("Change",sg(proj-gb),"vs baseline")+cd("Vs target",sg(proj-S.target),"")+cd("Points short",need>1e-9?f(need,1):"0","credit-weighted")+`</div>`;
  if(need<=1e-9)w+=`<div class="msg ok">Your expected marks reach the target.</div>`;
  else{let r=comp(S.last);if(!r.ok&&S.last!=null)r=comp(null);
@@ -119,7 +121,7 @@ function onIn(e){const t=e.target,k=t.dataset.k;if(!k)return;
 function update2(){const v=$("ct").value;update();const c=$("ct");c.value=v;c.focus()}
 document.addEventListener("input",onIn);document.addEventListener("change",e=>{if(e.target.type==="checkbox")onIn(e)});
 function modal(html,btns){$("mc").innerHTML=html;$("mb").innerHTML="";btns.forEach(b=>{const x=document.createElement("button");x.textContent=b[0];if(b[2])x.className="p";x.onclick=()=>{$("modal").hidden=true;b[1]&&b[1]()};$("mb").appendChild(x)});$("modal").hidden=false}
-function csv(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["Subject","Credits","MTT-1","MTT-2","ICA","Expected TEE","Actual TEE","Included","Expected aggregate","Expected grade pt"].map(q).join(",")].concat(S.subjects.map(s=>[s.name,s.cr,s.m1,s.m2,s.ica,s.exp,s.act,s.inc,s.ica==null?"":f(E.agg(s.ica,s.exp??0),2),s.ica==null?"":E.gp(S.scale,E.agg(s.ica,s.exp??0))].map(q).join(","))).join("\n")}
+function csv(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;return[["Subject","Credits","MTT-1","MTT-2","ICA","Expected TEE","Actual TEE","Included","Expected aggregate","Expected grade pt"].map(q).join(",")].concat(S.subjects.map(s=>[s.name,s.cr,s.m1,s.m2,s.ica,s.exp,s.act,s.inc,s.ica==null?"":f(ag(s,s.ica,s.exp??0),2),s.ica==null?"":E.gp(S.scale,ag(s,s.ica,s.exp??0))].map(q).join(","))).join("\n")}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act,i=+t.dataset.i;
  if(a==="tgt"){S.target=+t.dataset.v;update()}
  else if(a==="theme"){const d=document.documentElement,cur=d.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");d.dataset.theme=S.theme=cur==="dark"?"light":"dark";save()}
